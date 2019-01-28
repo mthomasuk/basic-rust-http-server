@@ -94,7 +94,7 @@ fn parse_body(rvec: &Vec<&str>) -> String {
     // Remove empty string indicating end of headers
     new_vec.remove(body_start_index);
 
-    // We run replace in order to remove empty data left over from
+    // .replace is used to remove empty data left over from
     // buffer initialisation
     String::from(new_vec[body_start_index]).replace("\u{0}", "")
 }
@@ -102,7 +102,7 @@ fn parse_body(rvec: &Vec<&str>) -> String {
 fn handle_connection(mut stream: TcpStream) {
     // Arbitrary buffer length - hopefully long enough to capture all
     // headers, even if there's shit-loads of them
-    let mut buffer = [0; 1024];
+    let mut buffer = [0; 512];
 
     stream.read(&mut buffer).unwrap();
 

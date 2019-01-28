@@ -8,6 +8,7 @@ enum Message {
     Terminate,
 }
 
+// What even is this
 trait FnBox {
     fn call_box(self: Box<Self>);
 }
@@ -19,6 +20,7 @@ impl<F: FnOnce()> FnBox for F {
     }
 }
 
+// Here be dragons
 type Job = Box<FnBox + Send + 'static>;
 
 pub struct ThreadPool {
@@ -27,7 +29,6 @@ pub struct ThreadPool {
 }
 
 struct Worker {
-    id: usize,
     thread: Option<thread::JoinHandle<()>>,
 }
 
@@ -40,10 +41,12 @@ impl ThreadPool {
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
 
+        // Using with_capacity is sliiiightly more effecient
+        // than just dumping an unsized vec in here
         let mut workers = Vec::with_capacity(safe_size);
 
-        for id in 0..safe_size {
-            workers.push(Worker::new(id, Arc::clone(&receiver)));
+        for _ in 0..safe_size {
+            workers.push(Worker::new(Arc::clone(&receiver)));
         }
 
         ThreadPool { workers, sender }
@@ -59,44 +62,35 @@ impl ThreadPool {
 }
 
 impl Worker {
-    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Worker {
+    fn new(receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Worker {
         let thread = thread::spawn(move || loop {
             let message = receiver.lock().unwrap().recv().unwrap();
 
             match message {
                 Message::NewJob(job) => {
-                    println!("Worker {} got a job; executing.", id);
-
                     job.call_box();
                 }
                 Message::Terminate => {
-                    println!("Worker {} was told to terminate.", id);
-
                     break;
                 }
             }
         });
 
         Worker {
-            id,
             thread: Some(thread),
         }
     }
 }
 
+// Apparently, "Drop" runs whenever an instance of ThreadPool
+// goes out of scope - that's pretty nifty
 impl Drop for ThreadPool {
     fn drop(&mut self) {
-        println!("Sending terminate message to all workers.");
-
         for _ in &mut self.workers {
             self.sender.send(Message::Terminate).unwrap();
         }
 
-        println!("Shutting down all workers.");
-
         for worker in &mut self.workers {
-            println!("Shutting down worker {}", worker.id);
-
             if let Some(thread) = worker.thread.take() {
                 thread.join().unwrap();
             }
