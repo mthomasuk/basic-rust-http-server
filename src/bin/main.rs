@@ -94,7 +94,9 @@ fn parse_body(rvec: &Vec<&str>) -> String {
     // Remove empty string indicating end of headers
     new_vec.remove(body_start_index);
 
-    String::from(new_vec[body_start_index])
+    // We run replace in order to remove empty data left over from
+    // buffer initialisation
+    String::from(new_vec[body_start_index]).replace("\u{0}", "")
 }
 
 fn handle_connection(mut stream: TcpStream) {
@@ -105,6 +107,8 @@ fn handle_connection(mut stream: TcpStream) {
     stream.read(&mut buffer).unwrap();
 
     let request_obj = parse_request(&buffer);
+
+    println!("{:?}", request_obj);
 
     let (status_line, filename) = if request_obj.method == "GET" && request_obj.path == "/" {
         ("HTTP/1.1 200 OK\r\n\r\n", "index.html")
