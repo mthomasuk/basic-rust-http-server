@@ -1,7 +1,10 @@
+extern crate web_serve;
+
 use std::fs;
 use std::io::prelude::*;
 use std::net::TcpListener;
 use std::net::TcpStream;
+use web_serve::ThreadPool;
 
 #[derive(Debug)]
 struct Request {
@@ -15,12 +18,17 @@ struct Request {
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let pool = ThreadPool::new(4);
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
 
-        handle_connection(stream);
+        pool.execute(|| {
+            handle_connection(stream);
+        });
     }
+
+    println!("Shutting down!");
 }
 
 fn parse_request(buf: &[u8]) -> Request {
@@ -90,12 +98,13 @@ fn parse_body(rvec: &Vec<&str>) -> String {
 }
 
 fn handle_connection(mut stream: TcpStream) {
-    let mut buffer = [0; 512];
+    // Arbitrary buffer length - hopefully long enough to capture all
+    // headers, even if there's shit-loads of them
+    let mut buffer = [0; 1024];
+
     stream.read(&mut buffer).unwrap();
 
     let request_obj = parse_request(&buffer);
-
-    println!("{:?}", request_obj);
 
     let (status_line, filename) = if request_obj.method == "GET" && request_obj.path == "/" {
         ("HTTP/1.1 200 OK\r\n\r\n", "index.html")
