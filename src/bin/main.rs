@@ -27,8 +27,6 @@ fn main() {
             handle_connection(stream);
         });
     }
-
-    println!("Shutting down!");
 }
 
 fn parse_request(buf: &[u8]) -> Request {
