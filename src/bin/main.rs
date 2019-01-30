@@ -1,8 +1,5 @@
-extern crate postgres;
 extern crate uuid;
 extern crate web_serve;
-
-use postgres::{Connection, TlsMode};
 
 use uuid::Uuid;
 
@@ -10,7 +7,9 @@ use std::fs;
 use std::io::prelude::*;
 use std::net::TcpListener;
 use std::net::TcpStream;
+
 use web_serve::ThreadPool;
+use web_serve::DB;
 
 #[derive(Debug)]
 struct Request {
@@ -30,8 +29,9 @@ struct User {
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
     let pool = ThreadPool::new(4);
+    let conn = DB::init("postgresql://postgres:postgres@localhost:5432/test-db");
 
-    init_db();
+    query_db(conn);
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
@@ -42,14 +42,8 @@ fn main() {
     }
 }
 
-fn init_db() {
-    let conn = Connection::connect(
-        "postgresql://postgres:postgres@localhost:5432/test-db",
-        TlsMode::None,
-    )
-    .unwrap();
-
-    for row in &conn.query("SELECT id, email FROM users", &[]).unwrap() {
+fn query_db(db: DB) {
+    for row in &db.conn.query("SELECT id, email FROM users", &[]).unwrap() {
         let user_id: Uuid = row.get("id");
         let user = User {
             id: user_id,

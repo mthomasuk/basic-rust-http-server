@@ -1,3 +1,7 @@
+extern crate postgres;
+
+use postgres::{Connection, TlsMode};
+
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -95,5 +99,17 @@ impl Drop for ThreadPool {
                 thread.join().unwrap();
             }
         }
+    }
+}
+
+pub struct DB {
+    pub conn: Connection,
+}
+
+impl DB {
+    pub fn init(conn_string: &str) -> DB {
+        let conn = Connection::connect(conn_string, TlsMode::None).unwrap();
+        let db = DB { conn };
+        return db;
     }
 }
