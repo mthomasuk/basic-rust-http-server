@@ -102,14 +102,14 @@ impl Drop for ThreadPool {
     }
 }
 
-pub struct DB {
+pub struct Db {
     pub conn: Connection,
 }
 
-impl DB {
-    pub fn init(conn_string: &str) -> DB {
+impl Db {
+    pub fn init(conn_string: &str) -> Db {
         let conn = Connection::connect(conn_string, TlsMode::None).unwrap();
-        let db = DB { conn };
-        return db;
+        let db = Db { conn };
+        db
     }
 }

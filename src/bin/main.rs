@@ -8,8 +8,8 @@ use std::io::prelude::*;
 use std::net::TcpListener;
 use std::net::TcpStream;
 
+use web_serve::Db;
 use web_serve::ThreadPool;
-use web_serve::DB;
 
 #[derive(Debug)]
 struct Request {
@@ -29,7 +29,7 @@ struct User {
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
     let pool = ThreadPool::new(4);
-    let conn = DB::init("postgresql://postgres:postgres@localhost:5432/test-db");
+    let conn = Db::init("postgresql://postgres:postgres@localhost:5432/test-db");
 
     query_db(conn);
 
@@ -42,7 +42,7 @@ fn main() {
     }
 }
 
-fn query_db(db: DB) {
+fn query_db(db: Db) {
     for row in &db.conn.query("SELECT id, email FROM users", &[]).unwrap() {
         let user_id: Uuid = row.get("id");
         let user = User {
