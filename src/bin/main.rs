@@ -1,4 +1,10 @@
+extern crate postgres;
+extern crate uuid;
 extern crate web_serve;
+
+use postgres::{Connection, TlsMode};
+
+use uuid::Uuid;
 
 use std::fs;
 use std::io::prelude::*;
@@ -16,9 +22,16 @@ struct Request {
     body: String,
 }
 
+struct User {
+    id: Uuid,
+    email: String,
+}
+
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
     let pool = ThreadPool::new(4);
+
+    init_db();
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
@@ -26,6 +39,26 @@ fn main() {
         pool.execute(|| {
             handle_connection(stream);
         });
+    }
+}
+
+fn init_db() {
+    let conn = Connection::connect(
+        "postgresql://postgres:postgres@localhost:5432/test-db",
+        TlsMode::None,
+    )
+    .unwrap();
+
+    for row in &conn.query("SELECT id, email FROM users", &[]).unwrap() {
+        let user_id: Uuid = row.get("id");
+        let user = User {
+            id: user_id,
+            email: row.get("email"),
+        };
+        println!(
+            "Found user!\nid  = {}\nwith email = {}\n",
+            user.id, user.email
+        );
     }
 }
 
