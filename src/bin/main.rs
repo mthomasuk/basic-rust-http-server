@@ -43,7 +43,7 @@ fn main() {
 }
 
 fn query_db(db: Db) {
-    for row in &db.conn.query("SELECT id, email FROM users", &[]).unwrap() {
+    for row in &Db::query(db, "SELECT id, email FROM users") {
         let user_id: Uuid = row.get("id");
         let user = User {
             id: user_id,

@@ -1,5 +1,6 @@
 extern crate postgres;
 
+use postgres::rows::Rows;
 use postgres::{Connection, TlsMode};
 
 use std::sync::mpsc;
@@ -111,5 +112,8 @@ impl Db {
         let conn = Connection::connect(conn_string, TlsMode::None).unwrap();
         let db = Db { conn };
         db
+    }
+    pub fn query(self, query_string: &str) -> Rows {
+        self.conn.query(query_string, &[]).unwrap()
     }
 }
