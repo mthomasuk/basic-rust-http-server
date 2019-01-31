@@ -1,0 +1,5 @@
+[server]
+address = "127.0.0.1:7878"
+
+[postgres]
+connection = "postgresql://postgres:postgres@localhost:5432/test-db"

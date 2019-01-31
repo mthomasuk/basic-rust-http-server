@@ -1,5 +1,18 @@
+#[macro_use]
+extern crate serde;
+extern crate toml;
+
 extern crate uuid;
-extern crate web_serve;
+
+mod config;
+mod database;
+mod threading;
+
+use config::init_config;
+use config::ConfigStruct;
+
+use database::Db;
+use threading::ThreadPool;
 
 use uuid::Uuid;
 
@@ -7,9 +20,6 @@ use std::fs;
 use std::io::prelude::*;
 use std::net::TcpListener;
 use std::net::TcpStream;
-
-use web_serve::Db;
-use web_serve::ThreadPool;
 
 #[derive(Debug)]
 struct Request {
@@ -27,9 +37,11 @@ struct User {
 }
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let config: ConfigStruct = init_config();
+
+    let listener = TcpListener::bind(config.server.address).unwrap();
     let pool = ThreadPool::new(4);
-    let conn = Db::init("postgresql://postgres:postgres@localhost:5432/test-db");
+    let conn = Db::init(&config.postgres.connection);
 
     query_db(conn);
 
@@ -132,7 +144,6 @@ fn handle_connection(mut stream: TcpStream) {
     stream.read(&mut buffer).unwrap();
 
     let request_obj = parse_request(&buffer);
-
     println!("{:?}", request_obj);
 
     let (status_line, filename) = if request_obj.method == "GET" && request_obj.path == "/" {

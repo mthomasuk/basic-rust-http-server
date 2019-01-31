@@ -6,3 +6,5 @@ authors = ["Mark Thomas <mark.thomas@yoti.com>"]
 [dependencies]
 postgres = { version = "0.15.2", features = ["with-uuid"] }
 uuid = "0.5"
+toml = "0.4.10"
+serde = { version = "1.0", features = ["derive"] }
