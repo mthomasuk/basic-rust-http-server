@@ -80,6 +80,28 @@ fn parse_body(rvec: &Vec<&str>) -> String {
     String::from(new_vec[body_start_index]).replace("\u{0}", "")
 }
 
+fn handle_routing(method: &str, path: &str) -> (String, String) {
+    match path.as_ref() {
+        "/" => {
+            if method == "GET" {
+                return (
+                    "HTTP/1.1 200 OK\r\n\r\n".to_string(),
+                    "templates/index.html".to_string(),
+                );
+            } else {
+                return (
+                    "HTTP/1.1 404 NOT FOUND\r\n\r\n".to_string(),
+                    "templates/404.html".to_string(),
+                );
+            }
+        }
+        _ => (
+            "HTTP/1.1 404 NOT FOUND\r\n\r\n".to_string(),
+            "templates/404.html".to_string(),
+        ),
+    }
+}
+
 pub fn handle_connection(mut stream: TcpStream) {
     // Arbitrary buffer length - hopefully long enough to capture all
     // headers, even if there's shit-loads of them
@@ -90,14 +112,8 @@ pub fn handle_connection(mut stream: TcpStream) {
     let request_obj = parse_request(&buffer);
     println!("{:?}", request_obj);
 
-    let (status_line, filename) = if request_obj.method == "GET" && request_obj.path == "/" {
-        ("HTTP/1.1 200 OK\r\n\r\n", "templates/index.html")
-    } else {
-        ("HTTP/1.1 404 NOT FOUND\r\n\r\n", "templates/404.html")
-    };
-
+    let (status_line, filename) = handle_routing(&request_obj.method, &request_obj.path);
     let contents = fs::read_to_string(filename).unwrap();
-
     let response = format!("{}{}", status_line, contents);
 
     stream.write(response.as_bytes()).unwrap();
