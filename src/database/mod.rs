@@ -1,8 +1,5 @@
-extern crate postgres;
-extern crate uuid;
-
-use self::uuid::Uuid;
-use database::postgres::{Connection, TlsMode};
+use super::postgres::{Connection, TlsMode};
+use super::uuid::Uuid;
 
 pub struct Db {
     pub conn: Connection,

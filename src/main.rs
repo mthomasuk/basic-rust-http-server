@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate serde;
+extern crate postgres;
 extern crate toml;
+extern crate uuid;
 
 mod config;
 mod database;
