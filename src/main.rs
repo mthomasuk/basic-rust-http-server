@@ -147,9 +147,9 @@ fn handle_connection(mut stream: TcpStream) {
     println!("{:?}", request_obj);
 
     let (status_line, filename) = if request_obj.method == "GET" && request_obj.path == "/" {
-        ("HTTP/1.1 200 OK\r\n\r\n", "index.html")
+        ("HTTP/1.1 200 OK\r\n\r\n", "templates/index.html")
     } else {
-        ("HTTP/1.1 404 NOT FOUND\r\n\r\n", "404.html")
+        ("HTTP/1.1 404 NOT FOUND\r\n\r\n", "templates/404.html")
     };
 
     let contents = fs::read_to_string(filename).unwrap();
