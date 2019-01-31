@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate serde;
+extern crate serde_json;
 
 extern crate postgres;
 extern crate toml;
@@ -25,10 +26,8 @@ fn main() {
 
     let listener = TcpListener::bind(config.server.address).unwrap();
     let pool = ThreadPool::new(4);
-    let conn = Db::init(&config.postgres.connection);
 
-    let users = Db::get_users(conn);
-    println!("{:?}", users);
+    let _conn = Db::init(&config.postgres.connection);
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();

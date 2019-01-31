@@ -86,18 +86,28 @@ fn handle_routing(method: &str, path: &str) -> (String, String) {
             if method == "GET" {
                 return (
                     "HTTP/1.1 200 OK\r\n\r\n".to_string(),
-                    "templates/index.html".to_string(),
+                    fs::read_to_string("templates/index.html").unwrap(),
                 );
             } else {
                 return (
                     "HTTP/1.1 404 NOT FOUND\r\n\r\n".to_string(),
-                    "templates/404.html".to_string(),
+                    fs::read_to_string("templates/404.html").unwrap(),
+                );
+            }
+        }
+        "/users" => {
+            if method == "GET" {
+                return ("HTTP/1.1 200 OK\r\n\r\n".to_string(), "".to_string());
+            } else {
+                return (
+                    "HTTP/1.1 404 NOT FOUND\r\n\r\n".to_string(),
+                    "Not found".to_string(),
                 );
             }
         }
         _ => (
             "HTTP/1.1 404 NOT FOUND\r\n\r\n".to_string(),
-            "templates/404.html".to_string(),
+            fs::read_to_string("templates/404.html").unwrap(),
         ),
     }
 }
@@ -112,8 +122,7 @@ pub fn handle_connection(mut stream: TcpStream) {
     let request_obj = parse_request(&buffer);
     println!("{:?}", request_obj);
 
-    let (status_line, filename) = handle_routing(&request_obj.method, &request_obj.path);
-    let contents = fs::read_to_string(filename).unwrap();
+    let (status_line, contents) = handle_routing(&request_obj.method, &request_obj.path);
     let response = format!("{}{}", status_line, contents);
 
     stream.write(response.as_bytes()).unwrap();
