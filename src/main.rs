@@ -2,8 +2,6 @@
 extern crate serde;
 extern crate toml;
 
-extern crate uuid;
-
 mod config;
 mod database;
 mod threading;
@@ -13,8 +11,6 @@ use config::ConfigStruct;
 
 use database::Db;
 use threading::ThreadPool;
-
-use uuid::Uuid;
 
 use std::fs;
 use std::io::prelude::*;
@@ -31,11 +27,6 @@ struct Request {
     body: String,
 }
 
-struct User {
-    id: Uuid,
-    email: String,
-}
-
 fn main() {
     let config: ConfigStruct = init_config();
 
@@ -43,7 +34,8 @@ fn main() {
     let pool = ThreadPool::new(4);
     let conn = Db::init(&config.postgres.connection);
 
-    query_db(conn);
+    let users = Db::get_users(conn);
+    println!("{:?}", users);
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
@@ -51,20 +43,6 @@ fn main() {
         pool.execute(|| {
             handle_connection(stream);
         });
-    }
-}
-
-fn query_db(db: Db) {
-    for row in &Db::query(db, "SELECT id, email FROM users") {
-        let user_id: Uuid = row.get("id");
-        let user = User {
-            id: user_id,
-            email: row.get("email"),
-        };
-        println!(
-            "Found user!\nid  = {}\nwith email = {}\n",
-            user.id, user.email
-        );
     }
 }
 
