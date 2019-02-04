@@ -14,18 +14,26 @@ impl Db {
         let db = Db { conn };
         db
     }
-    pub fn get_users(self) -> Vec<serde_json::Value> {
-        let mut users = Vec::new();
-        for row in &self.conn.query("SELECT id, email FROM users", &[]).unwrap() {
-            let user_id: Uuid = row.get("id");
-            let user_email: String = row.get("email");
+    pub fn get_guests(self) -> Box<Vec<serde_json::Value>> {
+        let mut guests = Vec::new();
 
-            let user = json!({
-                "id": user_id.hyphenated().to_string(),
-                "email": user_email,
+        for row in &self
+            .conn
+            .query("SELECT id, key, name FROM guests", &[])
+            .unwrap()
+        {
+            let guests_id: Uuid = row.get("id");
+            let guests_key: String = row.get("key");
+            let guests_name: String = row.get("name");
+
+            let guest = json!({
+                "id": guests_id.hyphenated().to_string(),
+                "key": guests_key,
+                "name": guests_name,
             });
-            users.push(user);
+            guests.push(guest);
         }
-        users
+
+        Box::new(guests)
     }
 }

@@ -1,6 +1,9 @@
 use std::fs;
 use std::io::prelude::*;
 use std::net::TcpStream;
+use std::sync::MutexGuard;
+
+use database::Db;
 
 #[derive(Debug)]
 struct Request {
@@ -10,6 +13,12 @@ struct Request {
     user_agent: String,
     headers: Vec<String>,
     body: String,
+}
+
+#[derive(Debug)]
+enum Response {
+    S(String),
+    J(Vec<serde_json::Value>),
 }
 
 fn parse_request(buf: &[u8]) -> Request {
@@ -80,39 +89,44 @@ fn parse_body(rvec: &Vec<&str>) -> String {
     String::from(new_vec[body_start_index]).replace("\u{0}", "")
 }
 
-fn handle_routing(method: &str, path: &str) -> (String, String) {
+fn handle_routing(
+    method: &str,
+    path: &str,
+    mut conn_guard: MutexGuard<Option<Db>>,
+) -> (String, Response) {
     match path.as_ref() {
         "/" => {
             if method == "GET" {
                 return (
                     "HTTP/1.1 200 OK\r\n\r\n".to_string(),
-                    fs::read_to_string("templates/index.html").unwrap(),
+                    Response::S(fs::read_to_string("templates/index.html").unwrap()),
                 );
             } else {
                 return (
                     "HTTP/1.1 404 NOT FOUND\r\n\r\n".to_string(),
-                    fs::read_to_string("templates/404.html").unwrap(),
+                    Response::S(fs::read_to_string("templates/404.html").unwrap()),
                 );
             }
         }
-        "/users" => {
+        "/guests" => {
             if method == "GET" {
-                return ("HTTP/1.1 200 OK\r\n\r\n".to_string(), "".to_string());
+                let guests = *conn_guard.take().unwrap().get_guests();
+                return ("HTTP/1.1 200 OK\r\n\r\n".to_string(), Response::J(guests));
             } else {
                 return (
                     "HTTP/1.1 404 NOT FOUND\r\n\r\n".to_string(),
-                    "Not found".to_string(),
+                    Response::S("Not found".to_string()),
                 );
             }
         }
         _ => (
             "HTTP/1.1 404 NOT FOUND\r\n\r\n".to_string(),
-            fs::read_to_string("templates/404.html").unwrap(),
+            Response::S(fs::read_to_string("templates/404.html").unwrap()),
         ),
     }
 }
 
-pub fn handle_connection(mut stream: TcpStream) {
+pub fn handle_connection(mut stream: TcpStream, conn_guard: MutexGuard<Option<Db>>) {
     // Arbitrary buffer length - hopefully long enough to capture all
     // headers, even if there's shit-loads of them
     let mut buffer = [0; 512];
@@ -122,8 +136,9 @@ pub fn handle_connection(mut stream: TcpStream) {
     let request_obj = parse_request(&buffer);
     println!("{:?}", request_obj);
 
-    let (status_line, contents) = handle_routing(&request_obj.method, &request_obj.path);
-    let response = format!("{}{}", status_line, contents);
+    let (status_line, contents) =
+        handle_routing(&request_obj.method, &request_obj.path, conn_guard);
+    let response = format!("{}{:#?}", status_line, contents);
 
     stream.write(response.as_bytes()).unwrap();
     stream.flush().unwrap();

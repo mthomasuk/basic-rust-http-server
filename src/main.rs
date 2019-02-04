@@ -11,6 +11,8 @@ mod database;
 mod requests;
 mod threading;
 
+use std::sync::{Arc, Mutex};
+
 use config::init_config;
 use config::ConfigStruct;
 
@@ -27,13 +29,15 @@ fn main() {
     let listener = TcpListener::bind(config.server.address).unwrap();
     let pool = ThreadPool::new(4);
 
-    let _conn = Db::init(&config.postgres.connection);
+    let conn = Arc::new(Mutex::new(Some(Db::init(&config.postgres.connection))));
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
+        let conn = Arc::clone(&conn);
 
-        pool.execute(|| {
-            handle_connection(stream);
+        pool.execute(move || {
+            let conn = conn.lock().unwrap();
+            handle_connection(stream, conn);
         });
     }
 }
