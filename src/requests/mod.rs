@@ -5,6 +5,11 @@ use std::sync::MutexGuard;
 
 use database::Db;
 
+use super::uuid::Uuid;
+
+use super::serde_json;
+use super::serde_json::json;
+
 #[derive(Debug)]
 struct Request {
     method: String,
@@ -90,11 +95,7 @@ fn parse_body(rvec: &Vec<&str>) -> String {
     String::from(new_vec[body_start_index]).replace("\u{0}", "")
 }
 
-fn handle_routing(
-    method: &str,
-    path: &str,
-    mut conn_guard: MutexGuard<Option<Db>>,
-) -> (String, Response) {
+fn handle_routing(method: &str, path: &str, conn: MutexGuard<Db>) -> (String, Response) {
     match path.as_ref() {
         "/" => {
             if method == "GET" {
@@ -111,7 +112,27 @@ fn handle_routing(
         }
         "/guests" => {
             if method == "GET" {
-                let guests = *conn_guard.take().unwrap().get_guests();
+                // Tried to move this into a module but it ain't happening because
+                // &conn gets consumed if it's an impl on a struct
+                let mut guests = Vec::new();
+
+                for row in &conn
+                    .conn
+                    .query("SELECT id, key, name FROM guests", &[])
+                    .unwrap()
+                {
+                    let guests_id: Uuid = row.get("id");
+                    let guests_key: String = row.get("key");
+                    let guests_name: String = row.get("name");
+
+                    let guest = json!({
+                        "id": guests_id.hyphenated().to_string(),
+                        "key": guests_key,
+                        "name": guests_name,
+                    });
+                    guests.push(guest);
+                }
+
                 return ("HTTP/1.1 200 OK\r\n\r\n".to_string(), Response::J(guests));
             } else {
                 return (
@@ -127,7 +148,7 @@ fn handle_routing(
     }
 }
 
-pub fn handle_connection(mut stream: TcpStream, conn_guard: MutexGuard<Option<Db>>) {
+pub fn handle_connection(mut stream: TcpStream, conn: MutexGuard<Db>) {
     // Arbitrary buffer length - hopefully long enough to capture all
     // headers, even if there's shit-loads of them
     let mut buffer = [0; 512];
@@ -137,8 +158,7 @@ pub fn handle_connection(mut stream: TcpStream, conn_guard: MutexGuard<Option<Db
     let request_obj = parse_request(&buffer);
     println!("{:?}", request_obj);
 
-    let (status_line, contents) =
-        handle_routing(&request_obj.method, &request_obj.path, conn_guard);
+    let (status_line, contents) = handle_routing(&request_obj.method, &request_obj.path, conn);
     let response = format!("{}{:#?}", status_line, contents);
 
     stream.write(response.as_bytes()).unwrap();

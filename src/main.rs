@@ -30,7 +30,7 @@ fn main() {
     let pool = ThreadPool::new(4);
 
     // Wrap the DB connection in a motha-flippin MUTEX because threads
-    let conn = Arc::new(Mutex::new(Some(Db::init(&config.postgres.connection))));
+    let conn = Arc::new(Mutex::new(Db::init(&config.postgres.connection)));
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
