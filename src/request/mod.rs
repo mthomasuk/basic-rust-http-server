@@ -95,22 +95,20 @@ fn parse_body(rvec: &Vec<&str>) -> String {
 }
 
 fn handle_routing(method: &str, path: &str, conn: MutexGuard<Db>) -> (String, Response) {
-    match path.as_ref() {
-        "/" => {
-            if method == "GET" {
-                return serve_index_page();
-            } else {
-                return serve_method_not_allowed();
-            }
+    if path == "/" {
+        if method == "GET" {
+            return serve_index_page();
+        } else {
+            return serve_method_not_allowed();
         }
-        "/guests" => {
-            if method == "GET" {
-                return serve_guests_json(conn);
-            } else {
-                return serve_method_not_allowed();
-            }
+    } else if path == "/guests" {
+        if method == "GET" {
+            return serve_guests_json(conn);
+        } else {
+            return serve_method_not_allowed();
         }
-        _ => serve_error_page(),
+    } else {
+        return serve_error_page();
     }
 }
 
