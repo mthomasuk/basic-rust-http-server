@@ -133,7 +133,10 @@ fn handle_routing(method: &str, path: &str, conn: MutexGuard<Db>) -> (String, Re
                     guests.push(guest);
                 }
 
-                return ("HTTP/1.1 200 OK\r\n\r\n".to_string(), Response::J(guests));
+                return (
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n".to_string(),
+                    Response::J(guests),
+                );
             } else {
                 return (
                     "HTTP/1.1 404 NOT FOUND\r\n\r\n".to_string(),
