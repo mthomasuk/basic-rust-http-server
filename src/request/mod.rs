@@ -98,7 +98,8 @@ fn parse_body(rvec: &Vec<&str>) -> String {
 }
 
 fn handle_routing(method: &str, path: &str, conn: MutexGuard<Db>) -> (String, Response) {
-    let re = Regex::new(r"^/guests/.*$").unwrap();
+    let re_g = Regex::new(r"^/guests$").unwrap();
+    let re_g_id = Regex::new(r"^/guests/.*$").unwrap();
 
     if path == "/" {
         if method == "GET" {
@@ -106,13 +107,13 @@ fn handle_routing(method: &str, path: &str, conn: MutexGuard<Db>) -> (String, Re
         } else {
             return serve_method_not_allowed();
         }
-    } else if path == "/guests" {
+    } else if re_g.is_match(path) {
         if method == "GET" {
             return serve_guests_json(conn);
         } else {
             return serve_method_not_allowed();
         }
-    } else if re.is_match(path) {
+    } else if re_g_id.is_match(path) {
         if method == "GET" {
             return serve_guest_json(conn, path);
         } else {
