@@ -36,8 +36,10 @@ fn main() {
         let conn = Arc::clone(&conn);
 
         pool.execute(move || {
-            let conn = conn.lock().unwrap();
-            handle_connection(stream, conn);
+            match conn.lock() {
+                Ok(conn) => handle_connection(stream, conn),
+                Err(poisoned) => handle_connection(stream, poisoned.into_inner()),
+            };
         });
     }
 }
