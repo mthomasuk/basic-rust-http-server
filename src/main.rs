@@ -3,6 +3,7 @@ extern crate serde;
 extern crate serde_json;
 
 extern crate postgres;
+extern crate regex;
 extern crate toml;
 extern crate uuid;
 

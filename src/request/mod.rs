@@ -2,9 +2,12 @@ use std::io::prelude::*;
 use std::net::TcpStream;
 use std::sync::MutexGuard;
 
+use regex::Regex;
+
 use database::Db;
 
 use response::serve_error_page;
+use response::serve_guest_json;
 use response::serve_guests_json;
 use response::serve_index_page;
 use response::serve_method_not_allowed;
@@ -95,6 +98,8 @@ fn parse_body(rvec: &Vec<&str>) -> String {
 }
 
 fn handle_routing(method: &str, path: &str, conn: MutexGuard<Db>) -> (String, Response) {
+    let re = Regex::new(r"^/guests/.*$").unwrap();
+
     if path == "/" {
         if method == "GET" {
             return serve_index_page();
@@ -104,6 +109,12 @@ fn handle_routing(method: &str, path: &str, conn: MutexGuard<Db>) -> (String, Re
     } else if path == "/guests" {
         if method == "GET" {
             return serve_guests_json(conn);
+        } else {
+            return serve_method_not_allowed();
+        }
+    } else if re.is_match(path) {
+        if method == "GET" {
+            return serve_guest_json(conn, path);
         } else {
             return serve_method_not_allowed();
         }
