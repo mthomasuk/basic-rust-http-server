@@ -15,6 +15,7 @@ struct Request {
     body: String,
 }
 
+// Special enum for wrapping a could-be-string-could-be-json response
 #[derive(Debug)]
 enum Response {
     S(String),

@@ -34,6 +34,7 @@ impl Db {
             guests.push(guest);
         }
 
+        // It's a Box because it's size is unknown at compile time
         Box::new(guests)
     }
 }
