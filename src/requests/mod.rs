@@ -162,7 +162,11 @@ pub fn handle_connection(mut stream: TcpStream, conn: MutexGuard<Db>) {
     println!("{:?}", request_obj);
 
     let (status_line, contents) = handle_routing(&request_obj.method, &request_obj.path, conn);
-    let response = format!("{}{:#?}", status_line, contents);
+
+    let response = match contents {
+        Response::S(string) => format!("{}{:#?}", status_line, string),
+        Response::J(json) => format!("{}{:#?}", status_line, json),
+    };
 
     stream.write(response.as_bytes()).unwrap();
     stream.flush().unwrap();
