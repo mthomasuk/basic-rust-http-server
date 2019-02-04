@@ -5,10 +5,8 @@ use std::sync::MutexGuard;
 
 use database::Db;
 
-use super::uuid::Uuid;
-
-use super::serde_json;
 use super::serde_json::json;
+use super::uuid::Uuid;
 
 #[derive(Debug)]
 struct Request {
@@ -24,7 +22,7 @@ struct Request {
 #[derive(Debug)]
 enum Response {
     S(String),
-    J(Vec<serde_json::Value>),
+    J(Vec<String>),
 }
 
 fn parse_request(buf: &[u8]) -> Request {
@@ -130,7 +128,7 @@ fn handle_routing(method: &str, path: &str, conn: MutexGuard<Db>) -> (String, Re
                         "key": guests_key,
                         "name": guests_name,
                     });
-                    guests.push(guest);
+                    guests.push(guest.to_string());
                 }
 
                 return (
@@ -163,11 +161,19 @@ pub fn handle_connection(mut stream: TcpStream, conn: MutexGuard<Db>) {
 
     let (status_line, contents) = handle_routing(&request_obj.method, &request_obj.path, conn);
 
-    let response = match contents {
-        Response::S(string) => format!("{}{:#?}", status_line, string),
-        Response::J(json) => format!("{}{:#?}", status_line, json),
+    match contents {
+        Response::S(string) => {
+            let response = format!("{}{:#?}", status_line, string);
+            stream.write(response.as_bytes()).unwrap();
+        }
+        Response::J(json) => {
+            let response = format!("{}", status_line);
+            let mut mapped_json = json.join(",");
+
+            stream.write(response.as_bytes()).unwrap();
+            stream.write(mapped_json.as_bytes()).unwrap();
+        }
     };
 
-    stream.write(response.as_bytes()).unwrap();
     stream.flush().unwrap();
 }
