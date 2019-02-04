@@ -1,12 +1,13 @@
-use std::fs;
 use std::io::prelude::*;
 use std::net::TcpStream;
 use std::sync::MutexGuard;
 
 use database::Db;
 
-use super::serde_json::json;
-use super::uuid::Uuid;
+use response::serve_error_page;
+use response::serve_guests_json;
+use response::serve_index_page;
+use response::serve_method_not_allowed;
 
 #[derive(Debug)]
 struct Request {
@@ -20,7 +21,7 @@ struct Request {
 
 // Special enum for wrapping a could-be-string-could-be-json response
 #[derive(Debug)]
-enum Response {
+pub enum Response {
     S(String),
     J(Vec<String>),
 }
@@ -97,55 +98,19 @@ fn handle_routing(method: &str, path: &str, conn: MutexGuard<Db>) -> (String, Re
     match path.as_ref() {
         "/" => {
             if method == "GET" {
-                return (
-                    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n".to_string(),
-                    Response::S(fs::read_to_string("templates/index.html").unwrap()),
-                );
+                return serve_index_page();
             } else {
-                return (
-                    "HTTP/1.1 404 NOT FOUND\r\nContent-Type: text/html\r\n\r\n".to_string(),
-                    Response::S(fs::read_to_string("templates/404.html").unwrap()),
-                );
+                return serve_method_not_allowed();
             }
         }
         "/guests" => {
             if method == "GET" {
-                // Tried to move this into a module but it ain't happening because
-                // &conn gets consumed if it's an impl on a struct
-                let mut guests = Vec::new();
-
-                for row in &conn
-                    .conn
-                    .query("SELECT id, key, name FROM guests", &[])
-                    .unwrap()
-                {
-                    let guests_id: Uuid = row.get("id");
-                    let guests_key: String = row.get("key");
-                    let guests_name: String = row.get("name");
-
-                    let guest = json!({
-                        "id": guests_id.hyphenated().to_string(),
-                        "key": guests_key,
-                        "name": guests_name,
-                    });
-                    guests.push(guest.to_string());
-                }
-
-                return (
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n".to_string(),
-                    Response::J(guests),
-                );
+                return serve_guests_json(conn);
             } else {
-                return (
-                    "HTTP/1.1 404 NOT FOUND\r\nContent-Type: text/html\r\n\r\n".to_string(),
-                    Response::S("Not found".to_string()),
-                );
+                return serve_method_not_allowed();
             }
         }
-        _ => (
-            "HTTP/1.1 404 NOT FOUND\r\nContent-Type: text/html\r\n\r\n".to_string(),
-            Response::S(fs::read_to_string("templates/404.html").unwrap()),
-        ),
+        _ => serve_error_page(),
     }
 }
 

@@ -8,18 +8,17 @@ extern crate uuid;
 
 mod config;
 mod database;
-mod requests;
+mod request;
+mod response;
 mod threading;
 
 use std::sync::{Arc, Mutex};
 
 use config::init_config;
 use config::ConfigStruct;
-
 use database::Db;
+use request::handle_connection;
 use threading::ThreadPool;
-
-use requests::handle_connection;
 
 use std::net::TcpListener;
 
