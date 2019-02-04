@@ -98,12 +98,12 @@ fn handle_routing(method: &str, path: &str, conn: MutexGuard<Db>) -> (String, Re
         "/" => {
             if method == "GET" {
                 return (
-                    "HTTP/1.1 200 OK\r\n\r\n".to_string(),
+                    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n".to_string(),
                     Response::S(fs::read_to_string("templates/index.html").unwrap()),
                 );
             } else {
                 return (
-                    "HTTP/1.1 404 NOT FOUND\r\n\r\n".to_string(),
+                    "HTTP/1.1 404 NOT FOUND\r\nContent-Type: text/html\r\n\r\n".to_string(),
                     Response::S(fs::read_to_string("templates/404.html").unwrap()),
                 );
             }
@@ -137,13 +137,13 @@ fn handle_routing(method: &str, path: &str, conn: MutexGuard<Db>) -> (String, Re
                 );
             } else {
                 return (
-                    "HTTP/1.1 404 NOT FOUND\r\n\r\n".to_string(),
+                    "HTTP/1.1 404 NOT FOUND\r\nContent-Type: text/html\r\n\r\n".to_string(),
                     Response::S("Not found".to_string()),
                 );
             }
         }
         _ => (
-            "HTTP/1.1 404 NOT FOUND\r\n\r\n".to_string(),
+            "HTTP/1.1 404 NOT FOUND\r\nContent-Type: text/html\r\n\r\n".to_string(),
             Response::S(fs::read_to_string("templates/404.html").unwrap()),
         ),
     }
@@ -163,14 +163,14 @@ pub fn handle_connection(mut stream: TcpStream, conn: MutexGuard<Db>) {
 
     match contents {
         Response::S(string) => {
-            let response = format!("{}{:#?}", status_line, string);
+            let response = format!("{}{}", status_line, string);
             stream.write(response.as_bytes()).unwrap();
         }
         Response::J(json) => {
-            let response = format!("{}", status_line);
+            let status = format!("{}", status_line);
             let mut mapped_json = json.join(",");
 
-            stream.write(response.as_bytes()).unwrap();
+            stream.write(status.as_bytes()).unwrap();
             stream.write(mapped_json.as_bytes()).unwrap();
         }
     };
